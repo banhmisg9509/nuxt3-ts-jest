@@ -1,75 +1,178 @@
-# Nuxt 3 Minimal Starter
+# Config jest with nuxt 3
 
-Look at the [Nuxt 3 documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+### Dependencies: 
 
-## Setup
+```
+npm i -D @babel/core @babel/preset-env @babel/preset-typescript babel-jest @types/jest jest jest-environment-jsdom @vue/test-utils @vue/vue3-jest
 
-Make sure to install the dependencies:
-
-```bash
-# npm
-npm install
-
-# pnpm
-pnpm install
-
-# yarn
-yarn install
-
-# bun
-bun install
 ```
 
-## Development Server
+These packages are needed for jest to transform and run *.spec.ts files
 
-Start the development server on `http://localhost:3000`:
+* "@babel/core": "^7.24.7"
+* "@babel/preset-env": "^7.24.7"
+* "@babel/preset-typescript": "^7.24.7"
+* "babel-jest": "^29.7.0",
 
-```bash
-# npm
-npm run dev
+These packages are needed to setup testing environment and jest types
 
-# pnpm
-pnpm run dev
+* "@types/jest": "^29.5.12",
+* "jest": "^29.7.0",
+* "jest-environment-jsdom": "^29.7.0"
 
-# yarn
-yarn dev
+There packages are needed for jest to transform and run *.vue files, also utilities needed for vue testing. 
 
-# bun
-bun run dev
+* "@vue/test-utils": "^2.4.6",
+* "@vue/vue3-jest": "^29.2.6",
+
+
+### Configuration files
+
+Create or modify these files:
+
+``` 
+// jest.config.cjs
+
+module.exports = {
+  testEnvironment: "jsdom",
+  testEnvironmentOptions: {
+    customExportConditions: ["node", "node-addons"],
+  },
+  moduleFileExtensions: ["js", "ts", "vue"],
+  moduleNameMapper: {
+    "^@/(.*)": "<rootDir>/$1",
+    "^~/(.*)": "<rootDir>/$1",
+  },
+  transform: {
+    "^.+\\.(ts)$": "babel-jest",
+    ".*\\.(vue)$": "@vue/vue3-jest",
+  },
+  transformIgnorePatterns: ["node_modules/(?!(nuxt3|unenv))"],
+};
 ```
 
-## Production
+```
+// babel.config.cjs
 
-Build the application for production:
-
-```bash
-# npm
-npm run build
-
-# pnpm
-pnpm run build
-
-# yarn
-yarn build
-
-# bun
-bun run build
+module.exports = {
+  presets: [
+    [
+      "@babel/preset-env",
+      {
+        targets: {
+          node: "current",
+        },
+      },
+    ],
+    "@babel/preset-typescript",
+  ],
+};
 ```
 
-Locally preview production build:
+```
+// tsconfig.json
 
-```bash
-# npm
-npm run preview
-
-# pnpm
-pnpm run preview
-
-# yarn
-yarn preview
-
-# bun
-bun run preview
+{
+  "extends": "./.nuxt/tsconfig.json",
+  "compilerOptions": {
+    "types": [
+      "jest"
+    ]
+  }
+}
 ```
 
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+
+```
+// package.json
+
+{
+  ...
+  "scripts": {
+    ...
+    "test": "jest"
+  },
+  ...
+}
+
+```
+
+### Demo testing
+
+Create DemoComponent.vue in components folder and DemoComponent.spec.ts in tests folder
+
+```
+// components/DemoComponent.vue
+
+<template>
+    <h1>This is a text</h1>
+</template>
+```
+
+```
+// tests/DemoComponent.spec.ts
+
+import { mount, shallowMount } from "@vue/test-utils";
+import DemoComponent from "~/components/DemoComponent.vue";
+
+function mountComponent<T>(component: T) {
+  return mount(component);
+}
+
+type WrapperType<T> = ReturnType<typeof mountComponent<T>>;
+
+describe("DemoComponent", () => {
+  let wrapper: WrapperType<typeof DemoComponent>;
+
+  beforeEach(() => {
+    wrapper = shallowMount(DemoComponent);
+  });
+
+  test("render DemoComponent", () => {
+    expect(wrapper.text()).toContain("This is a text");
+  });
+});
+
+```
+
+### Use @swc/jest instead of babel-jest to transform test faster
+
+1) Install @swc/jest and @swc/core packages, you don't need @babel/typescript and babel-jest anymore.
+2) Modify babel.config.cjs file:
+
+```
+module.exports = {
+  presets: [
+    [
+      "@babel/preset-env",
+      {
+        targets: {
+          node: "current",
+        },
+      },
+    ],
+  ],
+};
+```
+
+3) Modify jest.config.cjs file:
+
+```
+module.exports = {
+  testEnvironment: "jsdom",
+  testEnvironmentOptions: {
+    customExportConditions: ["node", "node-addons"],
+  },
+  moduleFileExtensions: ["js", "ts", "vue"],
+  moduleNameMapper: {
+    "^@/(.*)": "<rootDir>/$1",
+    "^~/(.*)": "<rootDir>/$1",
+  },
+  transform: {
+    "^.+\\.(ts)$": "@swc/jest",
+    ".*\\.(vue)$": "@vue/vue3-jest",
+  },
+  transformIgnorePatterns: ["node_modules/(?!(nuxt3|unenv))"],
+};
+```
+```
